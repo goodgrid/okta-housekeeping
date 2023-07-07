@@ -14,7 +14,7 @@ export const listAllAccounts = async () => {
         
         const result = response.data.map(user => {
             return {
-                "ID": user.id,
+                //"ID": user.id,
                 "Full name": `${user.profile.firstName} ${user.profile.lastName}`,
                 "Username": `${user.profile.login}`,
                 "Account status": `${user.status}`
@@ -37,7 +37,7 @@ export const listDeactivatedAccounts = async () => {
 
         const result = response.data.map(user => {
             return {
-                "ID": user.id,
+                //"ID": user.id,
                 "Full name": `${user.profile.firstName} ${user.profile.lastName}`,
                 "Username": `${user.profile.login}`,
             }            
@@ -60,7 +60,7 @@ export const listPendingAccounts = async () => {
             const dt = new Date(user.created)
             dt.setDate(dt.getDate() + config.activationLinkValidDays)
             return {
-                "ID": user.id,
+                //"ID": user.id,
                 "Full name": `${user.profile.firstName} ${user.profile.lastName}`,
                 "Username": `${user.profile.login}`,
                 "Activation expiry": `${dt.toLocaleDateString('nl-NL')}`
@@ -82,7 +82,7 @@ export const deleteDeactivatedAccounts = async () => {
 
         const result = await Promise.all(response.data.map(async user => {
             return {
-                "ID": user.id,
+                //"ID": user.id,
                 "Full name": `${user.profile.firstName} ${user.profile.lastName}`,
                 "Username": `${user.profile.login}`,
                 "API Response": getResponseMeaning(((await okta.delete(`/users/${user.id}`)).status))
@@ -107,7 +107,7 @@ export const deactivateExpiredPendingAccounts = async () => {
 
         const result = await Promise.all(response.data.map(async user => {      
             return {
-                "ID": user.id,
+                //"ID": user.id,
                 "Full name": `${user.profile.firstName} ${user.profile.lastName}`,
                 "Username": `${user.profile.login}`,
                 "API Response": getResponseMeaning(((await okta.post(`/users/${user.id}/lifecycle/deactivate`)).status))
