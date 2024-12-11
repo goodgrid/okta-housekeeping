@@ -1,10 +1,36 @@
 import { stringify } from "csv-stringify/sync"
 import okta from "./okta.js"
+import { csvFileToArray } from "./utils.js"
 import config from "./config.js"
 
-const csvOptions = {
-    headers: true,
-    delimiter: config.csvSeparator
+
+export const unenrollFactor = async(args) => {
+    const [factorType, csvPath] = args
+
+    if (factorType == undefined || csvPath == undefined) {
+        console.error(`You need to provide factorType as the third argument and csvPath as the fourth argument`)
+        process.exit()
+    }
+
+    const csvObject = await csvFileToArray(csvPath)
+
+    for (const user of csvObject) {
+        try {
+            const enrolledFactor = (await okta.get(`users/${user.userId}/factors`)).data.find(factor => factor.factorType == factorType)
+            
+            if (enrolledFactor) {
+                await okta.delete(`users/${user.userId}/factors/${enrolledFactor.id}?removeRecoveryEnrollment=false`)
+                console.error(`User ${user.userId} now has factor '${factorType}' unenrolled.`)
+            } else {
+                console.error(`User ${user.userId} does not have an enrolled factor of type '${factorType}'`)
+            }  
+        }
+        catch(error) {
+            console.error(error.response ? error.response.data : error)
+        }
+        
+    }
+    
 }
 
 export const listAllAccounts = async () => {
@@ -21,7 +47,7 @@ export const listAllAccounts = async () => {
             }            
         })
 
-        console.log(stringify(result, csvOptions))
+        console.log(stringify(result, config.csvOptions))
 
     } catch(error) {
         console.error(error.response.data)

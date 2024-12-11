@@ -17,6 +17,7 @@ vanuit een prompt/terminal/powershell, uiteraard via node. Het is zo
 ontworpen dat relatief eenvoudig functies aan het raamwerk toegevoegd kunnen worden. 
 
 Op dit moment zijn er functies voor:
+- Verwijderen van een factor bij gebruikers uit een CSV bestand 
 - Oplijsten van alle gebruikers in Okta met hun accountstatus (listAllAccounts)
 - Oplijsten van alle gedeaxtiveerde gebruikers (listDeactivatedAccounts)
 - Oplijsten van alle gebruikers die hun account nog moeten activeren, incluseif de datum waarop die mogelijkheid verloopt (listPendingAccounts)
