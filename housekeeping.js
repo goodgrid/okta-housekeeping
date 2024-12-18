@@ -15,7 +15,7 @@ if (!chores[chore]) {
     console.log("*********************************************************************")
     console.log("")
 
-    const commandArgs = process.argv.slice(5, process.argv.length + 1)
+    const commandArgs = process.argv.slice(4, process.argv.length + 1)
     
     await chores[chore](commandArgs)
 

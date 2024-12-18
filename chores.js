@@ -8,7 +8,7 @@ export const unenrollFactor = async(args) => {
     const [factorType, csvPath] = args
 
     if (factorType == undefined || csvPath == undefined) {
-        console.error(`You need to provide factorType as the third argument and csvPath as the fourth argument`)
+        console.log(`You need to provide factorType as the third argument and csvPath as the fourth argument`)
         process.exit()
     }
 
@@ -20,13 +20,13 @@ export const unenrollFactor = async(args) => {
             
             if (enrolledFactor) {
                 await okta.delete(`users/${user.userId}/factors/${enrolledFactor.id}?removeRecoveryEnrollment=false`)
-                console.error(`User ${user.userId} now has factor '${factorType}' unenrolled.`)
+                console.log(`User ${user.userId} now has factor '${factorType}' unenrolled.`)
             } else {
-                console.error(`User ${user.userId} does not have an enrolled factor of type '${factorType}'`)
+                console.log(`User ${user.userId} does not have an enrolled factor of type '${factorType}'`)
             }  
         }
-        catch(error) {
-            console.error(error.response ? error.response.data : error)
+        catch(error) {     
+            console.log(`Unenrollment for user ${user.userId} failed`, error.response ? error.response.data : error)
         }
         
     }
