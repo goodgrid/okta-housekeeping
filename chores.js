@@ -16,14 +16,26 @@ export const unenrollFactor = async(args) => {
 
     for (const user of csvObject) {
         try {
-            const enrolledFactor = (await okta.get(`users/${user.userId}/factors`)).data.find(factor => factor.factorType == factorType)
+
             
+
+            const enrolledFactors = (await okta.get(`users/${user.userId}/factors`)).data
+
+            enrolledFactors.map(factor => {
+                console.log(user.userId, factor.factorType)
+            })
+
+            const enrolledFactor = enrolledFactors.find(factor => factor.factorType == factorType)
+            
+            console.log(enrolledFactor)
+
             if (enrolledFactor) {
-                await okta.delete(`users/${user.userId}/factors/${enrolledFactor.id}?removeRecoveryEnrollment=false`)
+                //await okta.delete(`users/${user.userId}/factors/${enrolledFactor.id}?removeRecoveryEnrollment=false`)
                 console.log(`User ${user.userId} now has factor '${factorType}' unenrolled.`)
             } else {
                 console.log(`User ${user.userId} does not have an enrolled factor of type '${factorType}'`)
             }  
+              
         }
         catch(error) {     
             console.log(`Unenrollment for user ${user.userId} failed`, error.response ? error.response.data : error)
