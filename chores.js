@@ -1,8 +1,34 @@
 import { stringify } from "csv-stringify/sync"
-import okta from "./okta.js"
+import { oktaExternal, oktaInternal } from "./okta.js"
 import { csvFileToArray } from "./utils.js"
 import config from "./config.js"
 
+export const listAdmins = async () => {
+
+    const response = (await oktaInternal.get(`privileges/admins`))
+
+    
+    const admins = response.data
+    const users = await Promise.all(admins.map(async admin => {
+        
+        const user = (await oktaExternal.get(`users/${admin.userId}`)).data
+        const roles = (await oktaExternal.get(`users/${admin.userId}/roles`)).data.map(role => role.label).join(", ")
+
+        return {
+            ...user.profile,
+            lastLogin: user.lastLogin,
+            roles:  roles
+        }
+    }))
+
+
+    const csvOptions = {
+        header: true,
+        ...config.csvOptions
+    }
+
+    console.log(stringify(users,csvOptions))    
+}
 
 export const unenrollFactor = async(args) => {
     const [factorType, csvPath] = args
@@ -19,7 +45,7 @@ export const unenrollFactor = async(args) => {
 
             
 
-            const enrolledFactors = (await okta.get(`users/${user.userId}/factors`)).data
+            const enrolledFactors = (await oktaExternal.get(`users/${user.userId}/factors`)).data
 
             enrolledFactors.map(factor => {
                 console.log(user.userId, factor.factorType)
@@ -30,7 +56,7 @@ export const unenrollFactor = async(args) => {
             console.log(enrolledFactor)
 
             if (enrolledFactor) {
-                //await okta.delete(`users/${user.userId}/factors/${enrolledFactor.id}?removeRecoveryEnrollment=false`)
+                //await oktaExternal.delete(`users/${user.userId}/factors/${enrolledFactor.id}?removeRecoveryEnrollment=false`)
                 console.log(`User ${user.userId} now has factor '${factorType}' unenrolled.`)
             } else {
                 console.log(`User ${user.userId} does not have an enrolled factor of type '${factorType}'`)
@@ -48,7 +74,7 @@ export const unenrollFactor = async(args) => {
 export const listAllAccounts = async () => {
     const filter = "status eq \"STAGED\" or status eq \"PROVISIONED\" or status eq \"ACTIVE\" or status eq \"RECOVERY\" or status eq \"LOCKED_OUT\" or status eq \"PASSWORD_EXPIRED\" or status eq \"SUSPENDED\" or status eq \"DEPROVISIONED\""
     try {
-        const response = await okta.get(`/users?search=${filter}` )
+        const response = await oktaExternal.get(`/users?search=${filter}` )
         
         const result = response.data.map(user => {
             return {
@@ -71,7 +97,7 @@ export const listAllAccounts = async () => {
 export const listDeactivatedAccounts = async () => {
     const filter = "status eq \"DEPROVISIONED\""
     try {
-        const response = await okta.get(`/users?search=${filter}` )
+        const response = await oktaExternal.get(`/users?search=${filter}` )
 
         const result = response.data.map(user => {
             return {
@@ -91,7 +117,7 @@ export const listDeactivatedAccounts = async () => {
 export const listPendingAccounts = async () => {
     const filter = `status eq \"PROVISIONED\"`
     try {
-        const response = await okta.get(`/users?search=${filter}` )
+        const response = await oktaExternal.get(`/users?search=${filter}` )
 
         const result = response.data.map(user => {
             
@@ -116,14 +142,14 @@ export const listPendingAccounts = async () => {
 export const deleteDeactivatedAccounts = async () => {
     const filter = "status eq \"DEPROVISIONED\""
     try {
-        const response = await okta.get(`/users?search=${filter}` )
+        const response = await oktaExternal.get(`/users?search=${filter}` )
 
         const result = await Promise.all(response.data.map(async user => {
             return {
                 //"ID": user.id,
                 "Full name": `${user.profile.firstName} ${user.profile.lastName}`,
                 "Username": `${user.profile.login}`,
-                "API Response": getResponseMeaning(((await okta.delete(`/users/${user.id}`)).status))
+                "API Response": getResponseMeaning(((await oktaExternal.delete(`/users/${user.id}`)).status))
             }            
         }))
 
@@ -141,14 +167,14 @@ export const deactivateExpiredPendingAccounts = async () => {
     const filter = `status eq \"PROVISIONED\" and created lt \"${dt.toISOString()}\"`
 
     try {
-        const response = await okta.get(`/users?search=${filter}` )
+        const response = await oktaExternal.get(`/users?search=${filter}` )
 
         const result = await Promise.all(response.data.map(async user => {      
             return {
                 //"ID": user.id,
                 "Full name": `${user.profile.firstName} ${user.profile.lastName}`,
                 "Username": `${user.profile.login}`,
-                "API Response": getResponseMeaning(((await okta.post(`/users/${user.id}/lifecycle/deactivate`)).status))
+                "API Response": getResponseMeaning(((await oktaExternal.post(`/users/${user.id}/lifecycle/deactivate`)).status))
             }            
         }))
 
