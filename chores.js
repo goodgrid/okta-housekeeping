@@ -3,12 +3,26 @@ import { oktaExternal, oktaInternal } from "./okta.js"
 import { csvFileToArray } from "./utils.js"
 import config from "./config.js"
 
+export const unblockMailRecipients = async (args) => {
+    const [emailAdresses] = args
+
+    if (emailAdresses == undefined) {
+        console.log(`You need to provide addressList as the third argument, multiple addresses comma separated`)
+        process.exit()
+    }
+
+    const response = await oktaExternal.post(`org/email/bounces/remove-list`,{    
+        "emailAddresses": emailAdresses.split(",")
+    })
+
+    console.log(response.data)
+
+}
+
 export const listAdmins = async () => {
 
-    const response = (await oktaInternal.get(`privileges/admins`))
+    const admins = (await oktaInternal.get(`privileges/admins`)).data
 
-    
-    const admins = response.data
     const users = await Promise.all(admins.map(async admin => {
         
         const user = (await oktaExternal.get(`users/${admin.userId}`)).data
