@@ -3,6 +3,69 @@ import { oktaExternal, oktaInternal } from "./okta.js"
 import { csvFileToArray } from "./utils.js"
 import config from "./config.js"
 
+export const getAppProfiles = async (args) => {
+    const [appLabel] = args
+
+    const { data : apps } = await oktaExternal.get(`apps`)
+
+    const appProfiles = await Promise.all(apps.filter(app => {
+        const isActive = (app.status == 'ACTIVE')
+        const isSsoApp = (["SAML_1_1", "SAML_2_0", "OPENID_CONNECT"].indexOf(app.signOnMode) > -1)
+        const isRequested = (appLabel === undefined || app.label == appLabel)
+
+        return (isActive && isSsoApp && isRequested)
+    }).map(async app => {
+        return {
+            id: app.id,
+            name: app.name,
+            label: app.label,
+            profiles: (await oktaExternal.get(`apps/${app.id}/users`)).data
+        }
+    }))
+
+    console.log(appProfiles[0].profiles)
+    
+}
+
+
+export const convertDomain = async (args) => {
+    const [attributes, oldDomain, newDomain] = args
+
+    const { data: users } = await oktaExternal.get(`users?search=${encodeURIComponent("profile.email eq \"split.test@notarisid.nl\"")}`)
+
+    for (const user of users) {
+        
+        for (const attribute of attributes.split(",")) {
+
+            user.profile[attribute] = user.profile[attribute].replace(oldDomain, newDomain)
+
+        }
+        
+        const response = await oktaExternal.post(`users/${user.id}`, { profile: user.profile })
+
+        console.log(``)
+        
+    }
+}
+
+export const setProfileAttribute = async (args) => {
+    const [srcAttribute, dstAttribute] = args
+
+    const { data: users } = await oktaExternal.get(`users?search=${encodeURIComponent("profile.email eq \"koen.bonnet@notarisid.nl\"")}`)
+
+    for (const user of users) {
+        
+        user.profile[dstAttribute] = user.profile[srcAttribute]
+
+        console.log(user.profile)
+        const response = await oktaExternal.post(`users/${user.id}`, { profile: user.profile })
+
+        console.log(response.statusText)
+        
+    }
+}
+
+
 export const unblockMailRecipients = async (args) => {
     const [emailAdresses] = args
 
@@ -44,7 +107,32 @@ export const listAdmins = async () => {
     console.log(stringify(users,csvOptions))    
 }
 
-export const unenrollFactor = async(args) => {
+export const unrollAllFactorsExceptTypes = async(args) => {
+    const [csvPath, factorTypesToExclude] = args
+
+    const csv = await csvFileToArray(csvPath)
+
+    for (let i=90;i<99;i++) {
+        //console.log(csv[i][4])
+
+        const { data : factors } = await oktaExternal.get(`users/${csv[i][4]}/factors`)
+
+        for (let j=0;j<factors.length;j++) {
+            if (factorTypesToExclude.split(",").indexOf(factors[j].factorType) == -1) {
+                
+                try {
+                    await oktaExternal.delete(`users/${csv[i][4]}/factors/${factors[j].id}`)
+                    console.log(`Resetting factor ${factors[j].vendorName} ${factors[j].factorType} from user ${csv[i][8]} (${csv[i][4]}).`)
+                } catch(error) {
+                    console.log(`Could not reset ${factors[j].vendorName} ${factors[j].factorType} from user ${csv[i][8]} (${csv[i][4]}). It was probably already removed with the other part of Okta Verify Push`)
+                }
+            }
+        }
+    }
+
+}
+
+export const unenrollFactorOfType = async(args) => {
     const [factorType, csvPath] = args
 
     if (factorType == undefined || csvPath == undefined) {
@@ -56,9 +144,6 @@ export const unenrollFactor = async(args) => {
 
     for (const user of csvObject) {
         try {
-
-            
-
             const enrolledFactors = (await oktaExternal.get(`users/${user.userId}/factors`)).data
 
             enrolledFactors.map(factor => {
